@@ -37,13 +37,14 @@ jobs:
 
       - name: Publish (self-contained win-x64)
         run: dotnet publish src/BgRemover.App -c Release -r win-x64 --self-contained true -o publish/BackgroundRemover
+          Copy-Item publish/BackgroundRemover/BackgroundRemover.exe BackgroundRemover.exe
 
       - name: Add notices and package
         shell: pwsh
         run: |
           Copy-Item LICENSE, THIRD_PARTY_NOTICES.md, README.md publish/BackgroundRemover/
           "$env:MODEL_SHA256  models/isnet-general-use.onnx" | Set-Content publish/BackgroundRemover/MODEL_SHA256.txt
-          if (-not (Test-Path publish/BackgroundRemover/models/isnet-general-use.onnx)) { throw 'model missing from publish output' }
+          if ((Get-Item publish/BackgroundRemover/BackgroundRemover.exe).Length -lt 150MB) { throw 'model not embedded in exe' }
           Compress-Archive -Path publish/BackgroundRemover -DestinationPath BackgroundRemover-win-x64.zip -CompressionLevel Optimal
           (Get-FileHash BackgroundRemover-win-x64.zip -Algorithm SHA256).Hash | Set-Content BackgroundRemover-win-x64.zip.sha256
 
@@ -60,6 +61,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create $env:GITHUB_REF_NAME BackgroundRemover-win-x64.zip BackgroundRemover-win-x64.zip.sha256 `
+          gh release create $env:GITHUB_REF_NAME BackgroundRemover.exe BackgroundRemover-win-x64.zip BackgroundRemover-win-x64.zip.sha256 `
             --title "Background Remover $env:GITHUB_REF_NAME" `
             --notes-file docs/RELEASE_NOTES.md

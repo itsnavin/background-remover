@@ -16,7 +16,7 @@ public partial class MainWindow : Window
 
     private readonly ObservableCollection<FileItem> _items = new();
     private readonly SemaphoreSlim _modelLock = new(1, 1);
-    private readonly string _modelPath = Path.Combine(AppContext.BaseDirectory, "models", "isnet-general-use.onnx");
+    private string _modelPath = Path.Combine(AppContext.BaseDirectory, "models", "isnet-general-use.onnx");
     private readonly BackgroundSpec _bg = new();
     private OnnxMatteModel? _model;
     private volatile bool _useGpu = true, _useFlip;
@@ -85,12 +85,30 @@ public partial class MainWindow : Window
     private OnnxMatteModel GetModel()
     {
         if (_model != null) return _model;
+        EnsureModelFile();
         if (!File.Exists(_modelPath))
             throw new FileNotFoundException("Model file not found: " + _modelPath +
                 "\nReinstall the app or place isnet-general-use.onnx in the 'models' folder next to the executable.");
         _model = new OnnxMatteModel(_modelPath, _useGpu) { FlipAveraging = _useFlip };
         var desc = _model.Description; Dispatcher.BeginInvoke(() => ProviderText.Text = "Execution provider: " + desc);
         return _model;
+    }
+
+    private void EnsureModelFile()
+    {
+        if (File.Exists(_modelPath)) return;
+        using var res = typeof(MainWindow).Assembly.GetManifestResourceStream("isnet-general-use.onnx");
+        if (res == null) return;
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BackgroundRemover");
+        Directory.CreateDirectory(dir);
+        var target = Path.Combine(dir, "isnet-general-use.onnx");
+        if (!File.Exists(target) || new FileInfo(target).Length != res.Length)
+        {
+            var tmp = target + ".tmp";
+            using (var o = File.Create(tmp)) res.CopyTo(o);
+            File.Move(tmp, target, true);
+        }
+        _modelPath = target;
     }
 
     private void ResetModel()

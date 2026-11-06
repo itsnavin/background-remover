@@ -1,4 +1,4 @@
-**Windows x64, self-contained** - unzip and run `BackgroundRemover\BackgroundRemover.exe`. No install, no account, no network access needed; images never leave your PC.
+**Windows x64, self-contained** - download the single file `BackgroundRemover.exe` and run it (the model is embedded and extracted to `%LOCALAPPDATA%\BackgroundRemover` on first use), or use the ZIP. No install, no account, no network access needed; images never leave your PC.
 
 - The app is **unsigned**, so Windows SmartScreen will show "Windows protected your PC": choose *More info → Run anyway*. Verify the download against the attached `.sha256` file.
 - Download is large (~300 MB unpacked) because it bundles the .NET runtime, ONNX Runtime and the 170 MB ISNet model.

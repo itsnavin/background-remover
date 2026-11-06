@@ -10,11 +10,11 @@
     <RootNamespace>BgRemover.App</RootNamespace>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <Version>1.0.0</Version>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <PublishSingleFile>true</PublishSingleFile><IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract><EnableCompressionInSingleFile>false</EnableCompressionInSingleFile><SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('..\..\models\isnet-general-use.onnx')">
-    <None Include="..\..\models\isnet-general-use.onnx" Link="models\isnet-general-use.onnx" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="..\..\models\isnet-general-use.onnx" LogicalName="isnet-general-use.onnx" />
   </ItemGroup>
 
   <ItemGroup>
