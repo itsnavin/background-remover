@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly string _modelPath = Path.Combine(AppContext.BaseDirectory, "models", "isnet-general-use.onnx");
     private readonly BackgroundSpec _bg = new();
     private OnnxMatteModel? _model;
+    private volatile bool _useGpu = true, _useFlip;
     private FileItem? _cur;
     private RenderOutput? _output;
     private int _renderVersion, _selectVersion;
@@ -87,8 +88,8 @@ public partial class MainWindow : Window
         if (!File.Exists(_modelPath))
             throw new FileNotFoundException("Model file not found: " + _modelPath +
                 "\nReinstall the app or place isnet-general-use.onnx in the 'models' folder next to the executable.");
-        _model = new OnnxMatteModel(_modelPath, GpuCheck.IsChecked == true) { FlipAveraging = FlipCheck.IsChecked == true };
-        Dispatcher.Invoke(() => ProviderText.Text = "Execution provider: " + _model.Description);
+        _model = new OnnxMatteModel(_modelPath, _useGpu) { FlipAveraging = _useFlip };
+        var desc = _model.Description; Dispatcher.BeginInvoke(() => ProviderText.Text = "Execution provider: " + desc);
         return _model;
     }
 
@@ -101,8 +102,8 @@ public partial class MainWindow : Window
         foreach (var i in _items) if (i != _cur && i.Doc is { HasEdits: false }) { i.Doc = null; i.Status = "Queued"; }
     }
 
-    private void Gpu_Click(object sender, RoutedEventArgs e) => ResetModel();
-    private void Flip_Click(object sender, RoutedEventArgs e) { ResetModel(); }
+    private void Gpu_Click(object sender, RoutedEventArgs e) { _useGpu = GpuCheck.IsChecked == true; ResetModel(); }
+    private void Flip_Click(object sender, RoutedEventArgs e) { _useFlip = FlipCheck.IsChecked == true; ResetModel(); }
 
     private async Task<MatteDocument> EnsureDocAsync(FileItem item, CancellationToken ct)
     {
