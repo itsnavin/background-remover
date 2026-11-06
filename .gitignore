@@ -1,0 +1,8 @@
+bin/
+obj/
+out/
+models/*.onnx
+eval/out/
+eval/images/*.png
+.vs/
+*.user

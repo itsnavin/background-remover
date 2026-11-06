@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  MODEL_URL: https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx
+  MODEL_SHA256: 60920E99C45464F2BA57BEE2AD08C919A52BBF852739E96947FBB4358C0D964A
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Download and verify model
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force models | Out-Null
+          Invoke-WebRequest $env:MODEL_URL -OutFile models/isnet-general-use.onnx
+          $hash = (Get-FileHash models/isnet-general-use.onnx -Algorithm SHA256).Hash
+          if ($hash -ne $env:MODEL_SHA256) { throw "Model checksum mismatch: $hash" }
+
+      - name: Test
+        run: dotnet test tests/BgRemover.Tests -c Release
+
+      - name: Publish (self-contained win-x64)
+        run: dotnet publish src/BgRemover.App -c Release -r win-x64 --self-contained true -o publish/BackgroundRemover
+
+      - name: Add notices and package
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE, THIRD_PARTY_NOTICES.md, README.md publish/BackgroundRemover/
+          "$env:MODEL_SHA256  models/isnet-general-use.onnx" | Set-Content publish/BackgroundRemover/MODEL_SHA256.txt
+          if (-not (Test-Path publish/BackgroundRemover/models/isnet-general-use.onnx)) { throw 'model missing from publish output' }
+          Compress-Archive -Path publish/BackgroundRemover -DestinationPath BackgroundRemover-win-x64.zip -CompressionLevel Optimal
+          (Get-FileHash BackgroundRemover-win-x64.zip -Algorithm SHA256).Hash | Set-Content BackgroundRemover-win-x64.zip.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BackgroundRemover-win-x64
+          path: |
+            BackgroundRemover-win-x64.zip
+            BackgroundRemover-win-x64.zip.sha256
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME BackgroundRemover-win-x64.zip BackgroundRemover-win-x64.zip.sha256 `
+            --title "Background Remover $env:GITHUB_REF_NAME" `
+            --notes-file docs/RELEASE_NOTES.md
