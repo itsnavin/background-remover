@@ -37,7 +37,10 @@ jobs:
 
       - name: Publish (self-contained win-x64)
         run: dotnet publish src/BgRemover.App -c Release -r win-x64 --self-contained true -o publish/BackgroundRemover
-          Copy-Item publish/BackgroundRemover/BackgroundRemover.exe BackgroundRemover.exe
+
+      - name: Copy single exe
+        shell: pwsh
+        run: Copy-Item publish/BackgroundRemover/BackgroundRemover.exe BackgroundRemover.exe
 
       - name: Add notices and package
         shell: pwsh
